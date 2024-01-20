@@ -1,0 +1,125 @@
+---
+title: "Organizational Behavior: Creating the scraper GREAT PLACE TO WORK"
+author: "Elías Aburto Camacllanqui"
+date: last-modified
+format: 
+  html:
+    theme: cerulean
+    toc: true
+#   code-fold: true
+#   code-tools: true
+---
+
+# Introduction
+
+<!-- Adjust size using width and height attributes -->
+<img src="images/team.jpg" alt="Agricultural Unit" width="400" height="250" style="float:right; margin: 0 0 10px 10px;">
+
+In today's dynamic business landscape, understanding and analyzing workplace environments play a pivotal role in organizational success. Companies that prioritize employee well-being, foster a positive work culture, and invest in employee satisfaction often outperform their peers. One valuable resource for gaining insights into such exemplary workplace practices is the annual "Great Place to Work" list, which highlights the best workplaces globally.
+
+Creating a web scraper using RStudio to extract data from the Great Place to Work website offers a powerful means of accessing and analyzing this valuable information. By harnessing the capabilities of R and its diverse ecosystem of packages, you can automate the extraction of data on workplace rankings, employee counts, industry trends, and geographical locations. This information can be harnessed to uncover patterns, identify best practices, and make data-driven decisions in the realm of human resources, talent management, and organizational development.
+
+**Objective:** Obtain updated information on the Great Place To Work ranking of companies of the world since 2019 until 2022.
+
+
+# Methodology
+
+**Data:** From the web page <https://www.greatplacetowork.com.pe/>.
+
+**Design:** We created a web scrapper to obtain data.
+
+
+# Results
+
+## 1. Load libraries
+
+
+```{r, message=FALSE, warning=FALSE}
+library(rvest)      # HTML Hacking & Web Scraping
+library(tidyverse)  # Data Manipulation
+library(openxlsx)   # Excel manipulation
+library(xopen)      # Opens URL in Browser
+library(stringr)    # String manage
+```
+
+
+
+## 2. Extract data from web
+
+```{r, message=FALSE, warning=FALSE}
+# Initialize an empty data frame
+df <- data.frame()
+
+# Group by years from 2019 to 2022
+for (page_result in seq(from = 2019, to = 2022, by = 1)) {
+  
+  url  <- paste0("https://www.greatplacetowork.com.pe/mejores-lugares-para-trabajar/los-mejores-lugares-para-trabajar-del-mundo/", page_result)
+  page <- read_html(url)
+  
+  ranking       <- page |> html_nodes(".large") |> html_text()
+  empresa       <- page |> html_nodes(".h5") |> html_text()
+  localizacion  <- page |> html_nodes(".location li") |> html_text()
+  industria     <- page |> html_nodes(".industry li") |> html_text()
+  empleados     <- page |> html_nodes(".employee-count li") |> html_text()
+  
+  # Create a temporary data frame for the current page
+  temp_df <- data.frame(
+    year = rep(page_result, length(ranking)), # I add year of each iteration
+    ranking,
+    empresa,
+    localizacion,
+    industria,
+    empleados
+  )
+  
+  # Bind the temporary data frame to the main data frame
+  df <- rbind(df, temp_df)
+  
+  print(paste("Pagina:", (page_result-2019)+1))
+}
+
+# View the final data frame
+glimpse(df)
+
+```
+
+
+## 3. Data Cleaning
+
+We will give the appropriate format to the data obtained for each variable of interest.
+
+
+```{r, message=FALSE, warning=FALSE}
+
+# Remove blanks of ranking and empresa
+df$ranking <- str_trim(df$ranking, side = "both")
+df$empresa <- str_trim(df$empresa, side = "both")
+
+# Obtain only the numbers from empleados variable
+
+df$empleados <- str_replace_all(df$empleados, ",", "") # First, remove commas
+df$empleados <- str_extract(df$empleados, "\\d+") # Obtain the numbers
+df$empleados <- as.numeric(df$empleados) # Convert the "empleados" column to numeric
+
+
+```
+
+
+```{r, message=FALSE, warning=FALSE}
+# See the final table
+
+DT::datatable(df, options = list(pageLength = 10))
+```
+
+
+
+# Conclusion
+
+It is possible to obtain public data from the web and sort it appropriately using RStudio. Thanks!
+
+
+
+
+
+
+
